@@ -1,1 +1,19 @@
-"const errorHandler = (err, req, res, next) => {\n  console.error(`[Error] ${err.message}`);\n\n  if (err.code === 11000) {\n    return res.status(409).json({ success: false, message: 'Duplicate entry.' });\n  }\n  if (err.name === 'ValidationError') {\n    const messages = Object.values(err.errors).map((e) => e.message);\n    return res.status(400).json({ success: false, message: messages.join('. ') });\n  }\n  if (err.name === 'CastError') {\n    return res.status(400).json({ success: false, message: `Invalid ID: ${err.value}` });\n  }\n\n  const statusCode = err.statusCode || 500;\n  res.status(statusCode).json({ success: false, message: err.message || 'Internal server error.' });\n};\n\nmodule.exports = errorHandler;\n"
+const errorHandler = (err, req, res, next) => {
+  console.error(`[Error] ${err.message}`);
+
+  if (err.code === 11000) {
+    return res.status(409).json({ success: false, message: 'Duplicate entry.' });
+  }
+  if (err.name === 'ValidationError') {
+    const messages = Object.values(err.errors).map((e) => e.message);
+    return res.status(400).json({ success: false, message: messages.join('. ') });
+  }
+  if (err.name === 'CastError') {
+    return res.status(400).json({ success: false, message: `Invalid ID: ${err.value}` });
+  }
+
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({ success: false, message: err.message || 'Internal server error.' });
+};
+
+module.exports = errorHandler;

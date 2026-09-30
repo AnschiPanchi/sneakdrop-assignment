@@ -1,1 +1,26 @@
-"const Inventory = require('../models/Inventory');\n\nconst getInventory = async () => {\n  return await Inventory.findOne();\n};\n\n// Atomic decrement — only succeeds if available > 0\n// Prevents overselling under concurrent requests\nconst decrementAvailable = async (session) => {\n  return await Inventory.findOneAndUpdate(\n    { available: { $gt: 0 } },\n    { $inc: { available: -1 } },\n    { new: true, session }\n  );\n};\n\n// Called when a hold expires and nobody is in queue\nconst incrementAvailable = async (session) => {\n  return await Inventory.findOneAndUpdate(\n    {},\n    { $inc: { available: 1 } },\n    { new: true, session }\n  );\n};\n\nmodule.exports = { getInventory, decrementAvailable, incrementAvailable };\n"
+const Inventory = require('../models/Inventory');
+
+const getInventory = async () => {
+  return await Inventory.findOne();
+};
+
+// Atomic decrement — only succeeds if available > 0
+// Prevents overselling under concurrent requests
+const decrementAvailable = async (session) => {
+  return await Inventory.findOneAndUpdate(
+    { available: { $gt: 0 } },
+    { $inc: { available: -1 } },
+    { new: true, session }
+  );
+};
+
+// Called when a hold expires and nobody is in queue
+const incrementAvailable = async (session) => {
+  return await Inventory.findOneAndUpdate(
+    {},
+    { $inc: { available: 1 } },
+    { new: true, session }
+  );
+};
+
+module.exports = { getInventory, decrementAvailable, incrementAvailable };

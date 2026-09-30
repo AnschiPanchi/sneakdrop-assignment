@@ -1,1 +1,16 @@
-"const mongoose = require('mongoose');\n\n// eventId must be unique — this is how we handle duplicate webhook events\nconst paymentSchema = new mongoose.Schema({\n  eventId: { type: String, required: true, unique: true },\n  holdId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hold', required: true },\n  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },\n  status: { type: String, enum: ['PENDING', 'SUCCESS', 'FAILED'], default: 'PENDING' },\n  createdAt: { type: Date, default: Date.now },\n  processedAt: { type: Date, default: null },\n});\n\npaymentSchema.index({ eventId: 1 }, { unique: true });\npaymentSchema.index({ holdId: 1 });\n\nmodule.exports = mongoose.model('Payment', paymentSchema);\n"
+const mongoose = require('mongoose');
+
+// eventId must be unique — this is how we handle duplicate webhook events
+const paymentSchema = new mongoose.Schema({
+  eventId: { type: String, required: true, unique: true },
+  holdId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hold', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['PENDING', 'SUCCESS', 'FAILED'], default: 'PENDING' },
+  createdAt: { type: Date, default: Date.now },
+  processedAt: { type: Date, default: null },
+});
+
+paymentSchema.index({ eventId: 1 }, { unique: true });
+paymentSchema.index({ holdId: 1 });
+
+module.exports = mongoose.model('Payment', paymentSchema);

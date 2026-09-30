@@ -1,1 +1,15 @@
-"const mongoose = require('mongoose');\n\n// HELD -> PURCHASED on payment, HELD -> EXPIRED if time runs out\nconst holdSchema = new mongoose.Schema({\n  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },\n  status: { type: String, enum: ['HELD', 'PURCHASED', 'EXPIRED'], default: 'HELD' },\n  expiresAt: { type: Date, required: true },\n  createdAt: { type: Date, default: Date.now },\n  purchasedAt: { type: Date, default: null },\n});\n\nholdSchema.index({ userId: 1, status: 1 });\nholdSchema.index({ status: 1, expiresAt: 1 });\n\nmodule.exports = mongoose.model('Hold', holdSchema);\n"
+const mongoose = require('mongoose');
+
+// HELD -> PURCHASED on payment, HELD -> EXPIRED if time runs out
+const holdSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, enum: ['HELD', 'PURCHASED', 'EXPIRED'], default: 'HELD' },
+  expiresAt: { type: Date, required: true },
+  createdAt: { type: Date, default: Date.now },
+  purchasedAt: { type: Date, default: null },
+});
+
+holdSchema.index({ userId: 1, status: 1 });
+holdSchema.index({ status: 1, expiresAt: 1 });
+
+module.exports = mongoose.model('Hold', holdSchema);

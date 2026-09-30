@@ -1,2 +1,63 @@
-"const mongoose = require('mongoose');\nconst Payment = require('../models/Payment');\nconst Hold = require('../models/Hold');\nconst User = require('../models/User');\nconst { v4: uuidv4 } = require('uuid');\n\n// Status priority — we never downgrade (SUCCESS can't go back to PENDING)\nconst STATUS_PRIORITY = { PENDING: 1, FAILED: 2, SUCCESS: 3 };\n\nconst initiatePayment = async (holdId, userId) => {\n  const eventId = `pay_${uuidv4()}`;\n  const payment = new Payment({ eventId, holdId, userId, status: 'PENDING' });\n  await payment.save();\n  return { eventId, holdId, userId };\n};\n\nconst processWebhook = async (eventId, holdId, status, getIO) => {\n  let payment = await Payment.findOne({ eventId });\n\n  if (payment) {\n    const currentPriority = STATUS_PRIORITY[payment.status] || 0;\n    const newPriority = STATUS_PRIORITY[status] || 0;\n\n    // Ignore duplicate or out-of-order lower-priority events\n    if (newPriority <= currentPriority) {\n      return { alreadyProcessed: true, payment };\n    }\n\n    payment.status = status;\n    if (status !== 'PENDING') payment.processedAt = new Date();\n    await payment.save();\n  } else {\n    const hold = await Hold.findById(holdId);\n    if (!hold) throw new Error('Hold not found for payment webhook');\n\n    payment = new Payment({\n      eventId,\n      holdId,\n      userId: hold.userId,\n      status,\n      processedAt: status !== 'PENDING' ? new Date() : null,\n    });\n    await payment.save();\n  }\n\n  if (status === 'SUCCESS') {\n    await completePurchase(holdId, payment.userId, getIO);\n  }\n\n  return { alreadyProcessed: false, payment };\n};\n\nconst completePurchase = async (holdId, userId, getIO) => {\n  const session = await mongoose.startSession();\n  session.startTransaction();\n\n  try {\n    // Atomic transition — returns null if already purchased (duplicate event)\n    const hold = await Hold.findOneAndUpdate(\n      { _id: holdId, status: 'HELD' },\n      { status: 'PURCHASED', purchasedAt: new Date() },\n      { new: true, session 
+const mongoose = require('mongoose');
+const Payment = require('../models/Payment');
+const Hold = require('../models/Hold');
+const User = require('../models/User');
+const { v4: uuidv4 } = require('uuid');
+
+// Status priority — we never downgrade (SUCCESS can't go back to PENDING)
+const STATUS_PRIORITY = { PENDING: 1, FAILED: 2, SUCCESS: 3 };
+
+const initiatePayment = async (holdId, userId) => {
+  const eventId = `pay_${uuidv4()}`;
+  const payment = new Payment({ eventId, holdId, userId, status: 'PENDING' });
+  await payment.save();
+  return { eventId, holdId, userId };
+};
+
+const processWebhook = async (eventId, holdId, status, getIO) => {
+  let payment = await Payment.findOne({ eventId });
+
+  if (payment) {
+    const currentPriority = STATUS_PRIORITY[payment.status] || 0;
+    const newPriority = STATUS_PRIORITY[status] || 0;
+
+    // Ignore duplicate or out-of-order lower-priority events
+    if (newPriority <= currentPriority) {
+      return { alreadyProcessed: true, payment };
+    }
+
+    payment.status = status;
+    if (status !== 'PENDING') payment.processedAt = new Date();
+    await payment.save();
+  } else {
+    const hold = await Hold.findById(holdId);
+    if (!hold) throw new Error('Hold not found for payment webhook');
+
+    payment = new Payment({
+      eventId,
+      holdId,
+      userId: hold.userId,
+      status,
+      processedAt: status !== 'PENDING' ? new Date() : null,
+    });
+    await payment.save();
+  }
+
+  if (status === 'SUCCESS') {
+    await completePurchase(holdId, payment.userId, getIO);
+  }
+
+  return { alreadyProcessed: false, payment };
+};
+
+const completePurchase = async (holdId, userId, getIO) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Atomic transition — returns null if already purchased (duplicate event)
+    const hold = await Hold.findOneAndUpdate(
+      { _id: holdId, status: 'HELD' },
+      { status: 'PURCHASED', purchasedAt: new Date() },
+      { new: true, session 
 <truncated 806 bytes>

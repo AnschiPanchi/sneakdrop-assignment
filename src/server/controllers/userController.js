@@ -1,1 +1,36 @@
-"const User = require('../models/User');\n\nconst getAllUsers = async (req, res, next) => {\n  try {\n    const users = await User.find().sort({ createdAt: -1 });\n    res.json({ success: true, users });\n  } catch (err) {\n    next(err);\n  }\n};\n\nconst createUser = async (req, res, next) => {\n  try {\n    const { name } = req.body;\n    if (!name || name.trim() === '') {\n      return res.status(400).json({ success: false, message: 'Name is required.' });\n    }\n    const user = new User({ name: name.trim() });\n    await user.save();\n    res.status(201).json({ success: true, user });\n  } catch (err) {\n    next(err);\n  }\n};\n\nconst getUserById = async (req, res, next) => {\n  try {\n    const user = await User.findById(req.params.id);\n    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });\n    res.json({ success: true, user });\n  } catch (err) {\n    next(err);\n  }\n};\n\nmodule.exports = { getAllUsers, createUser, getUserById };\n"
+const User = require('../models/User');
+
+const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find().sort({ createdAt: -1 });
+    res.json({ success: true, users });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createUser = async (req, res, next) => {
+  try {
+    const { name } = req.body;
+    if (!name || name.trim() === '') {
+      return res.status(400).json({ success: false, message: 'Name is required.' });
+    }
+    const user = new User({ name: name.trim() });
+    await user.save();
+    res.status(201).json({ success: true, user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getUserById = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+    res.json({ success: true, user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getAllUsers, createUser, getUserById };

@@ -1,2 +1,71 @@
-"require('dotenv').config();\nconst express = require('express');\nconst http = require('http');\nconst { Server } = require('socket.io');\nconst cors = require('cors');\n\nconst connectDB = require('./config/db');\nconst errorHandler = require('./middleware/errorHandler');\nconst userRoutes = require('./routes/userRoutes');\nconst dropRoutes = require('./routes/dropRoutes');\nconst paymentRoutes = require('./routes/paymentRoutes');\n\nconst { setGetIO: setDropIO } = require('./controllers/dropController');\nconst { setGetIO: setPaymentIO } = require('./controllers/paymentController');\nconst { startExpiryWorker, setIO: setWorkerIO } = require('./workers/expiryWorker');\n\nconst app = express();\nconst server = http.createServer(app);\n\nconst io = new Server(server, {\n  cors: {\n    origin: process.env.CLIENT_URL || 'http://localhost:5173',\n    methods: ['GET', 'POST'],\n  },\n});\n\napp.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));\napp.use(express.json());\n\napp.use('/api/users', userRoutes);\napp.use('/api/drop', dropRoutes);\napp.use('/api/payment', paymentRoutes);\napp.get('/api/health', (req, res) => res.json({ status: 'ok' }));\n\napp.use(errorHandler);\n\nio.on('connection', (socket) => {\n  console.log(`Socket connected: ${socket.id}`);\n\n  // Client joins their own room to receive targeted updates\n  socket.on('join', (userId) => {\n    if (userId) socket.join(`user:${userId}`);\n  });\n\n  socket.on('disconnect', () => {\n    console.log(`Socket disconnected: ${socket.id}`);\n  });\n});\n\nconst getIO = () => io;\nsetDropIO(getIO);\nsetPaymentIO(getIO);\nsetWorkerIO(io);\n\nconst PORT = process.env.PORT || 5000;\n\nconst start = async () => {\n  await connectDB();\n\n  // Auto-seed inventory on first run\n  const Inventory = require('./models/Inventory');\n  const existing = await Inventory.findOne();\n  if (!existing) {\n    await new Inventory({ total: 20, available: 20 }).save();\n    console.log('Inventory seeded: 20 sneakers.');\n  }\n\n  startExpiryWorker();\n\n  
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const cors = require('cors');
+
+const connectDB = require('./config/db');
+const errorHandler = require('./middleware/errorHandler');
+const userRoutes = require('./routes/userRoutes');
+const dropRoutes = require('./routes/dropRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+
+const { setGetIO: setDropIO } = require('./controllers/dropController');
+const { setGetIO: setPaymentIO } = require('./controllers/paymentController');
+const { startExpiryWorker, setIO: setWorkerIO } = require('./workers/expiryWorker');
+
+const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+  },
+});
+
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+app.use(express.json());
+
+app.use('/api/users', userRoutes);
+app.use('/api/drop', dropRoutes);
+app.use('/api/payment', paymentRoutes);
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+app.use(errorHandler);
+
+io.on('connection', (socket) => {
+  console.log(`Socket connected: ${socket.id}`);
+
+  // Client joins their own room to receive targeted updates
+  socket.on('join', (userId) => {
+    if (userId) socket.join(`user:${userId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Socket disconnected: ${socket.id}`);
+  });
+});
+
+const getIO = () => io;
+setDropIO(getIO);
+setPaymentIO(getIO);
+setWorkerIO(io);
+
+const PORT = process.env.PORT || 5000;
+
+const start = async () => {
+  await connectDB();
+
+  // Auto-seed inventory on first run
+  const Inventory = require('./models/Inventory');
+  const existing = await Inventory.findOne();
+  if (!existing) {
+    await new Inventory({ total: 20, available: 20 }).save();
+    console.log('Inventory seeded: 20 sneakers.');
+  }
+
+  startExpiryWorker();
+
+  
 <truncated 201 bytes>

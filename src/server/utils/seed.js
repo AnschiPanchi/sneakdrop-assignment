@@ -1,1 +1,28 @@
-"require('dotenv').config();\nconst mongoose = require('mongoose');\nconst Inventory = require('../models/Inventory');\n\n// Run once to seed inventory. Safe to run again — won't duplicate.\nconst seed = async () => {\n  try {\n    await mongoose.connect(process.env.MONGO_URI);\n    console.log('Connected to MongoDB for seeding.');\n\n    const existing = await Inventory.findOne();\n    if (existing) {\n      console.log('Inventory already seeded:', existing);\n    } else {\n      const inventory = new Inventory({ total: 20, available: 20 });\n      await inventory.save();\n      console.log('Inventory seeded:', inventory);\n    }\n\n    await mongoose.disconnect();\n    console.log('Done.');\n  } catch (err) {\n    console.error('Seeding error:', err.message);\n    process.exit(1);\n  }\n};\n\nseed();\n"
+require('dotenv').config();
+const mongoose = require('mongoose');
+const Inventory = require('../models/Inventory');
+
+// Run once to seed inventory. Safe to run again — won't duplicate.
+const seed = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('Connected to MongoDB for seeding.');
+
+    const existing = await Inventory.findOne();
+    if (existing) {
+      console.log('Inventory already seeded:', existing);
+    } else {
+      const inventory = new Inventory({ total: 20, available: 20 });
+      await inventory.save();
+      console.log('Inventory seeded:', inventory);
+    }
+
+    await mongoose.disconnect();
+    console.log('Done.');
+  } catch (err) {
+    console.error('Seeding error:', err.message);
+    process.exit(1);
+  }
+};
+
+seed();

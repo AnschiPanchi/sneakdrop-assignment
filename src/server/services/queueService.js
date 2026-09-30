@@ -1,1 +1,55 @@
-"const Queue = require('../models/Queue');\n\nconst getUserQueueEntry = async (userId) => {\n  return await Queue.findOne({ userId, status: 'WAITING' });\n};\n\nconst enqueue = async (userId) => {\n  const existing = await getUserQueueEntry(userId);\n  if (existing) return existing;\n\n  const entry = new Queue({ userId, status: 'WAITING', joinedAt: new Date() });\n  await entry.save();\n  return entry;\n};\n\nconst getQueuePosition = async (userId) => {\n  const entry = await getUserQueueEntry(userId);\n  if (!entry) return null;\n\n  const ahead = await Queue.countDocuments({\n    status: 'WAITING',\n    joinedAt: { $lt: entry.joinedAt },\n  });\n  return ahead + 1;\n};\n\nconst getQueueLength = async () => {\n  return await Queue.countDocuments({ status: 'WAITING' });\n};\n\n// Atomically grabs the next WAITING user in FIFO order\nconst claimNextWaiting = async (session) => {\n  return await Queue.findOneAndUpdate(\n    { status: 'WAITING' },\n    { status: 'PROMOTED' },\n    { sort: { joinedAt: 1 }, new: true, session }\n  );\n};\n\nconst removeFromQueue = async (userId) => {\n  return await Queue.findOneAndUpdate(\n    { userId, status: 'WAITING' },\n    { status: 'REMOVED' },\n    { new: true }\n  );\n};\n\nmodule.exports = {\n  getUserQueueEntry,\n  enqueue,\n  getQueuePosition,\n  getQueueLength,\n  claimNextWaiting,\n  removeFromQueue,\n};\n"
+const Queue = require('../models/Queue');
+
+const getUserQueueEntry = async (userId) => {
+  return await Queue.findOne({ userId, status: 'WAITING' });
+};
+
+const enqueue = async (userId) => {
+  const existing = await getUserQueueEntry(userId);
+  if (existing) return existing;
+
+  const entry = new Queue({ userId, status: 'WAITING', joinedAt: new Date() });
+  await entry.save();
+  return entry;
+};
+
+const getQueuePosition = async (userId) => {
+  const entry = await getUserQueueEntry(userId);
+  if (!entry) return null;
+
+  const ahead = await Queue.countDocuments({
+    status: 'WAITING',
+    joinedAt: { $lt: entry.joinedAt },
+  });
+  return ahead + 1;
+};
+
+const getQueueLength = async () => {
+  return await Queue.countDocuments({ status: 'WAITING' });
+};
+
+// Atomically grabs the next WAITING user in FIFO order
+const claimNextWaiting = async (session) => {
+  return await Queue.findOneAndUpdate(
+    { status: 'WAITING' },
+    { status: 'PROMOTED' },
+    { sort: { joinedAt: 1 }, new: true, session }
+  );
+};
+
+const removeFromQueue = async (userId) => {
+  return await Queue.findOneAndUpdate(
+    { userId, status: 'WAITING' },
+    { status: 'REMOVED' },
+    { new: true }
+  );
+};
+
+module.exports = {
+  getUserQueueEntry,
+  enqueue,
+  getQueuePosition,
+  getQueueLength,
+  claimNextWaiting,
+  removeFromQueue,
+};

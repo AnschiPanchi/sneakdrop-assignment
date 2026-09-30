@@ -1,2 +1,68 @@
-"const mongoose = require('mongoose');\nconst holdService = require('../services/holdService');\nconst queueService = require('../services/queueService');\nconst inventoryService = require('../services/inventoryService');\n\nlet io;\n\nconst setIO = (socketIO) => {\n  io = socketIO;\n};\n\nconst processExpiredHold = async (expiredHold) => {\n  const session = await mongoose.startSession();\n  session.startTransaction();\n\n  try {\n    // Atomic — if another worker already expired this, returns null and we skip\n    const hold = await holdService.expireHold(expiredHold._id, session);\n    if (!hold) {\n      await session.abortTransaction();\n      return;\n    }\n\n    const nextInQueue = await queueService.claimNextWaiting(session);\n\n    if (nextInQueue) {\n      const newHold = await holdService.createHold(nextInQueue.userId, session);\n      await session.commitTransaction();\n\n      console.log(`Hold expired. Promoted user ${nextInQueue.userId} → hold ${newHold._id}`);\n\n      if (io) {\n        io.to(`user:${nextInQueue.userId}`).emit('hold:update', {\n          status: 'HELD',\n          holdId: newHold._id,\n          expiresAt: newHold.expiresAt,\n        });\n        io.emit('queue:update');\n      }\n    } else {\n      await inventoryService.incrementAvailable(session);\n      await session.commitTransaction();\n      console.log(`Hold expired for user ${expiredHold.userId}. Inventory restored.`);\n\n      if (io) io.emit('inventory:update');\n    }\n  } catch (err) {\n    await session.abortTransaction();\n    console.error(`Error processing expired hold ${expiredHold._id}:`, err.message);\n  } finally {\n    session.endSession();\n  }\n};\n\nconst runExpiryCheck = async () => {\n  try {\n    const expiredHolds = await holdService.findExpiredHolds();\n    for (const hold of expiredHolds) {\n      await processExpiredHold(hold);\n    }\n  } catch (err) {\n    console.error('Expiry worker error:', err.message);\n  }\n};\n\nconst startExpiryWorker = () => {\n  console.log('Expiry worker started.
+const mongoose = require('mongoose');
+const holdService = require('../services/holdService');
+const queueService = require('../services/queueService');
+const inventoryService = require('../services/inventoryService');
+
+let io;
+
+const setIO = (socketIO) => {
+  io = socketIO;
+};
+
+const processExpiredHold = async (expiredHold) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Atomic — if another worker already expired this, returns null and we skip
+    const hold = await holdService.expireHold(expiredHold._id, session);
+    if (!hold) {
+      await session.abortTransaction();
+      return;
+    }
+
+    const nextInQueue = await queueService.claimNextWaiting(session);
+
+    if (nextInQueue) {
+      const newHold = await holdService.createHold(nextInQueue.userId, session);
+      await session.commitTransaction();
+
+      console.log(`Hold expired. Promoted user ${nextInQueue.userId} → hold ${newHold._id}`);
+
+      if (io) {
+        io.to(`user:${nextInQueue.userId}`).emit('hold:update', {
+          status: 'HELD',
+          holdId: newHold._id,
+          expiresAt: newHold.expiresAt,
+        });
+        io.emit('queue:update');
+      }
+    } else {
+      await inventoryService.incrementAvailable(session);
+      await session.commitTransaction();
+      console.log(`Hold expired for user ${expiredHold.userId}. Inventory restored.`);
+
+      if (io) io.emit('inventory:update');
+    }
+  } catch (err) {
+    await session.abortTransaction();
+    console.error(`Error processing expired hold ${expiredHold._id}:`, err.message);
+  } finally {
+    session.endSession();
+  }
+};
+
+const runExpiryCheck = async () => {
+  try {
+    const expiredHolds = await holdService.findExpiredHolds();
+    for (const hold of expiredHolds) {
+      await processExpiredHold(hold);
+    }
+  } catch (err) {
+    console.error('Expiry worker error:', err.message);
+  }
+};
+
+const startExpiryWorker = () => {
+  console.log('Expiry worker started.
 <truncated 98 bytes>
