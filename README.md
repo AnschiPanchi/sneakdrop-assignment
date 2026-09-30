@@ -56,7 +56,7 @@ Database (MongoDB)
 ## Folder Structure
 
 ```
-sneakdrop/
+src/
 ├── server/
 │   ├── config/db.js                 MongoDB connection
 │   ├── controllers/
@@ -84,7 +84,6 @@ sneakdrop/
 │   │   └── expiryWorker.js         Polls for expired holds every 2s
 │   ├── utils/
 │   │   ├── seed.js                  Seeds inventory
-│   │   └── test-concurrent.js      Concurrency test suite
 │   └── server.js                   Entry point
 │
 └── client/
