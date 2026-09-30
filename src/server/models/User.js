@@ -1,0 +1,1 @@
+"const mongoose = require('mongoose');\n\nconst userSchema = new mongoose.Schema({\n  name: { type: String, required: true, trim: true },\n  purchasedCount: { type: Number, default: 0, min: 0, max: 2 },\n  createdAt: { type: Date, default: Date.now },\n});\n\nmodule.exports = mongoose.model('User', userSchema);\n"

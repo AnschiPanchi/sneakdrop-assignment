@@ -1,0 +1,1 @@
+"const mongoose = require('mongoose');\n\n// Single document — tracks available stock\n// Use atomic $inc updates, never read-modify-write\nconst inventorySchema = new mongoose.Schema({\n  total: { type: Number, default: 20 },\n  available: { type: Number, default: 20 },\n});\n\nmodule.exports = mongoose.model('Inventory', inventorySchema);\n"
