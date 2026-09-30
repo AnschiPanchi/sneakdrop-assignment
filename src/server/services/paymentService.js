@@ -59,5 +59,40 @@ const completePurchase = async (holdId, userId, getIO) => {
     const hold = await Hold.findOneAndUpdate(
       { _id: holdId, status: 'HELD' },
       { status: 'PURCHASED', purchasedAt: new Date() },
-      { new: true, session 
-<truncated 806 bytes>
+      { new: true, session }
+    );
+
+    if (!hold) {
+      await session.abortTransaction();
+      return null;
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $inc: { purchasedCount: 1 } },
+      { new: true, session }
+    );
+
+    await session.commitTransaction();
+
+    if (getIO) {
+      const io = getIO();
+      io.to(`user:${userId}`).emit('hold:update', {
+        holdId: hold._id,
+        status: 'PURCHASED',
+        purchasedCount: user.purchasedCount,
+      });
+      io.emit('inventory:update');
+      io.emit('payment:update');
+    }
+
+    return { hold, user };
+  } catch (err) {
+    await session.abortTransaction();
+    throw err;
+  } finally {
+    session.endSession();
+  }
+};
+
+module.exports = { initiatePayment, processWebhook, completePurchase };

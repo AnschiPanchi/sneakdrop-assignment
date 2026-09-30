@@ -64,5 +64,65 @@ const buyDrop = async (req, res, next) => {
     }
 
     const user = await User.findById(userId).session(session);
-    
-<truncated 2034 bytes>
+    if (!user) {
+      await session.abortTransaction();
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    if (user.purchasedCount >= 2) {
+      await session.abortTransaction();
+      return res.status(409).json({ success: false, message: 'Purchase limit reached. You can only buy 2 sneakers.' });
+    }
+
+    // Return existing hold if user already has one
+    const existingHold = await holdService.getActiveHold(userId);
+    if (existingHold) {
+      await session.abortTransaction();
+      return res.json({
+        success: true,
+        status: 'HELD',
+        holdId: existingHold._id,
+        expiresAt: existingHold.expiresAt,
+        message: 'You already have an active hold.',
+      });
+    }
+
+    // Atomic inventory decrement — returns null if nothing available
+    const updatedInventory = await inventoryService.decrementAvailable(session);
+
+    if (updatedInventory) {
+      const hold = await holdService.createHold(userId, session);
+      await session.commitTransaction();
+
+      if (getIO) {
+        getIO().emit('inventory:update');
+        getIO().to(`user:${userId}`).emit('hold:update', {
+          status: 'HELD',
+          holdId: hold._id,
+          expiresAt: hold.expiresAt,
+        });
+      }
+
+      return res.status(201).json({ success: true, status: 'HELD', holdId: hold._id, expiresAt: hold.expiresAt });
+    } else {
+      await session.abortTransaction();
+
+      const queueEntry = await queueService.enqueue(userId);
+      const position = await queueService.getQueuePosition(userId);
+
+      if (getIO) {
+        getIO().emit('queue:update');
+        getIO().to(`user:${userId}`).emit('queue:update', { position });
+      }
+
+      return res.json({ success: true, status: 'QUEUED', queuePosition: position });
+    }
+  } catch (err) {
+    await session.abortTransaction();
+    next(err);
+  } finally {
+    session.endSession();
+  }
+};
+
+module.exports = { getDropStatus, buyDrop, setGetIO };

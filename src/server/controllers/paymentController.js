@@ -49,5 +49,11 @@ const handleWebhook = async (req, res, next) => {
     const result = await paymentService.processWebhook(eventId, holdId, status, getIO);
     res.json({ success: true, alreadyProcessed: result.alreadyProcessed, payment: result.payment });
   } catch (err) {
-   
-<truncated 190 bytes>
+    if (err.code === 11000) {
+      return res.json({ success: true, alreadyProcessed: true });
+    }
+    next(err);
+  }
+};
+
+module.exports = { initiatePay, handleWebhook, setGetIO };

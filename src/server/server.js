@@ -67,5 +67,12 @@ const start = async () => {
 
   startExpiryWorker();
 
-  
-<truncated 201 bytes>
+  server.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
+};
+
+start().catch((err) => {
+  console.error('Failed to start:', err);
+  process.exit(1);
+});

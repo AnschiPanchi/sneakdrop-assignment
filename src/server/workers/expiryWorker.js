@@ -64,5 +64,8 @@ const runExpiryCheck = async () => {
 };
 
 const startExpiryWorker = () => {
-  console.log('Expiry worker started.
-<truncated 98 bytes>
+  console.log('Expiry worker started.');
+  setInterval(runExpiryCheck, 2000);
+};
+
+module.exports = { startExpiryWorker, setIO };
