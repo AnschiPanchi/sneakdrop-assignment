@@ -32,14 +32,14 @@ export default function App() {
     }
   }, [userId])
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const res = await api.get('/users')
       setUsers(res.data.users)
     } catch {
       // ignore
     }
-  }
+  }, [])
 
   useEffect(() => { fetchUsers() }, [])
   useEffect(() => { fetchDrop() }, [fetchDrop])
@@ -50,16 +50,23 @@ export default function App() {
     if (userId) socket.emit('join', userId)
   }, [userId])
 
+  const handlePaymentUpdate = useCallback(() => {
+    fetchDrop()
+    fetchUsers()
+  }, [fetchDrop, fetchUsers])
+
   useEffect(() => {
     socket.on('inventory:update', fetchDrop)
     socket.on('hold:update', fetchDrop)
     socket.on('queue:update', fetchDrop)
+    socket.on('payment:update', handlePaymentUpdate)
     return () => {
       socket.off('inventory:update', fetchDrop)
       socket.off('hold:update', fetchDrop)
       socket.off('queue:update', fetchDrop)
+      socket.off('payment:update', handlePaymentUpdate)
     }
-  }, [fetchDrop])
+  }, [fetchDrop, handlePaymentUpdate])
 
   // ── Countdown (display only — backend is authoritative) ───
 
