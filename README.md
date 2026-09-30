@@ -2,6 +2,9 @@
 
 A limited-stock sneaker purchasing system built with the MERN stack. Exactly 20 sneakers are available. Thousands of users may try to purchase simultaneously. The system guarantees correctness under concurrency through atomic MongoDB operations and transactions.
 
+## Video Walkthrough / Explanation
+📺 **[Watch the full technical walkthrough on Loom](https://www.loom.com/share/a89c6ed63eb44377855c5aaa24176f40)**
+
 ---
 
 ## Project Overview
