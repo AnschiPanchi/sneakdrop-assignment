@@ -107,6 +107,15 @@ const buyDrop = async (req, res, next) => {
     } else {
       await session.abortTransaction();
 
+      const activeHoldsCount = await Hold.countDocuments({
+        status: 'HELD',
+        expiresAt: { $gt: new Date() }
+      });
+
+      if (activeHoldsCount === 0) {
+        return res.status(400).json({ success: false, message: 'Drop is completely sold out!' });
+      }
+
       const queueEntry = await queueService.enqueue(userId);
       const position = await queueService.getQueuePosition(userId);
 
