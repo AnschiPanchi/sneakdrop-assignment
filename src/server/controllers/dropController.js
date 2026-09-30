@@ -113,7 +113,7 @@ const buyDrop = async (req, res, next) => {
       });
 
       if (activeHoldsCount === 0) {
-        return res.status(400).json({ success: false, message: 'Drop is completely sold out!' });
+        return res.status(400).json({ success: false, message: 'Stock is completely sold out!' });
       }
 
       const queueEntry = await queueService.enqueue(userId);

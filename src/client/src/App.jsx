@@ -154,18 +154,18 @@ export default function App() {
   return (
     <div>
       <h1>SneakDrop</h1>
-      <p>Limited drop — 20 pairs only. No more, no less.</p>
+      <p>Limited stock — 20 pairs only. No more, no less.</p>
 
       <hr />
 
       <h2>Inventory</h2>
       {drop ? (
-        <div>
+        <div className="inventory-grid">
           <p>Total: {drop.total}</p>
           <p>Available: {drop.available}</p>
           <p>Held: {drop.held}</p>
           <p>Sold: {drop.sold}</p>
-          <p>Queue: {drop.queueLength} waiting</p>
+          <p>Queue: {drop.queueLength}</p>
         </div>
       ) : (
         <p>Loading...</p>
